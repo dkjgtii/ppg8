@@ -7405,16 +7405,17 @@ document.head.appendChild(swipeStyle);
 <script>
 // ... ваш существующий код ДО этого места ...
 
-// ===== СВАЙПЫ С АНИМАЦИЕЙ ВО ВСЕ СТОРОНЫ =====
+// ===== БЫСТРЫЕ И ПЛАВНЫЕ СВАЙПЫ ВО ВСЕ СТОРОНЫ =====
 let touchStartX = 0;
 let touchStartY = 0;
 let isSwiping = false;
 let swipeDirection = null;
 
-// Добавляем стили для анимации
+// Добавляем стили для быстрой анимации
 const swipeStyles = `
     .swipeable-page {
-        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        transition: transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+        will-change: transform;
     }
     
     .swipe-hint {
@@ -7428,7 +7429,7 @@ const swipeStyles = `
         border-radius: 20px;
         font-size: 14px;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition: opacity 0.2s ease;
         z-index: 1000;
         pointer-events: none;
     }
@@ -7437,29 +7438,77 @@ const swipeStyles = `
         opacity: 1;
     }
     
-    /* Анимации для разных направлений */
-    .slide-from-right {
-        transform: translateX(100%);
+    /* Быстрые анимации */
+    .slide-in-right {
+        animation: slideInRight 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
     
-    .slide-from-left {
-        transform: translateX(-100%);
+    .slide-in-left {
+        animation: slideInLeft 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
     
-    .slide-from-bottom {
-        transform: translateY(100%);
+    .slide-in-top {
+        animation: slideInTop 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
     
-    .slide-to-right {
-        transform: translateX(100%);
+    .slide-in-bottom {
+        animation: slideInBottom 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
     
-    .slide-to-left {
-        transform: translateX(-100%);
+    .slide-out-right {
+        animation: slideOutRight 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
     
-    .slide-to-bottom {
-        transform: translateY(100%);
+    .slide-out-left {
+        animation: slideOutLeft 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+    
+    .slide-out-top {
+        animation: slideOutTop 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+    
+    .slide-out-bottom {
+        animation: slideOutBottom 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+    
+    @keyframes slideInRight {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+    }
+    
+    @keyframes slideInLeft {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+    }
+    
+    @keyframes slideInTop {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+    }
+    
+    @keyframes slideInBottom {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    
+    @keyframes slideOutRight {
+        from { transform: translateX(0); }
+        to { transform: translateX(100%); }
+    }
+    
+    @keyframes slideOutLeft {
+        from { transform: translateX(0); }
+        to { transform: translateX(-100%); }
+    }
+    
+    @keyframes slideOutTop {
+        from { transform: translateY(0); }
+        to { transform: translateY(-100%); }
+    }
+    
+    @keyframes slideOutBottom {
+        from { transform: translateY(0); }
+        to { transform: translateY(100%); }
     }
 `;
 
@@ -7480,104 +7529,106 @@ function getCurrentPage() {
     return 'main';
 }
 
-// Функция для обработки навигации с анимацией
-function navigateToPageWithAnimation(direction) {
+// Быстрая анимация перехода
+function navigateWithQuickAnimation(direction) {
     const current = getCurrentPage();
     const cabinetNavItem = document.getElementById('cabinet-nav-item');
     const storageNavItem = document.getElementById('storage-nav-item');
     
-    // Получаем элементы страниц
     const mainPage = document.getElementById('main-page');
     const cabinetPage = document.getElementById('cabinet-page');
     const storagePage = document.getElementById('storage-page');
     
-    // Добавляем класс анимации
+    // Убираем предыдущие анимации
     [mainPage, cabinetPage, storagePage].forEach(page => {
-        if (page) page.classList.add('swipeable-page');
+        if (page) {
+            page.className = page.className.replace(/slide-(in|out)-\w+/g, '');
+            page.classList.add('swipeable-page');
+        }
     });
     
-    // Применяем анимацию в зависимости от направления
     setTimeout(() => {
         switch(current) {
             case 'main':
                 if (direction === 'right') {
-                    // Каюта выезжает СЛЕВА
-                    cabinetPage.classList.add('slide-from-left');
-                    setTimeout(() => {
-                        cabinetPage.classList.remove('slide-from-left');
-                        cabinetPage.style.transform = 'translateX(0)';
-                        mainPage.classList.add('slide-to-right');
-                    }, 10);
+                    // Каюта выезжает слева
+                    cabinetPage.classList.add('slide-in-right');
+                    mainPage.classList.add('slide-out-left');
                     
                     setTimeout(() => {
                         showPage(cabinetPage);
                         if (cabinetNavItem) updateActiveNav(cabinetNavItem);
-                        resetTransforms();
-                    }, 300);
+                        resetAnimations();
+                    }, 250);
                     
                 } else if (direction === 'left') {
-                    // Склад выезжает СПРАВА
-                    storagePage.classList.add('slide-from-right');
-                    setTimeout(() => {
-                        storagePage.classList.remove('slide-from-right');
-                        storagePage.style.transform = 'translateX(0)';
-                        mainPage.classList.add('slide-to-left');
-                    }, 10);
+                    // Склад выезжает справа
+                    storagePage.classList.add('slide-in-left');
+                    mainPage.classList.add('slide-out-right');
                     
                     setTimeout(() => {
                         showPage(storagePage);
                         if (storageNavItem) updateActiveNav(storageNavItem);
-                        resetTransforms();
-                    }, 300);
+                        resetAnimations();
+                    }, 250);
                     
                 } else if (direction === 'up') {
-                    // Дополнительная страница выезжает СНИЗУ (например, для настроек)
-                    // Здесь можно добавить логику для новой страницы
-                    console.log('Swipe up - open settings or other page');
-                    if (typeof triggerVibration === 'function') {
-                        triggerVibration();
-                    }
+                    // Быстрая анимация вверх (можно для новой страницы)
+                    mainPage.classList.add('slide-out-top');
+                    setTimeout(() => {
+                        // Здесь можно добавить логику для новой страницы
+                        console.log('Quick swipe up');
+                        resetAnimations();
+                    }, 250);
+                    
+                } else if (direction === 'down') {
+                    // Быстрая анимация вниз
+                    mainPage.classList.add('slide-out-bottom');
+                    setTimeout(() => {
+                        console.log('Quick swipe down');
+                        resetAnimations();
+                    }, 250);
                 }
                 break;
                 
             case 'cabinet':
                 if (direction === 'left') {
-                    // Возврат на главную - каюта уезжает ВЛЕВО
-                    mainPage.style.transform = 'translateX(0)';
-                    cabinetPage.classList.add('slide-to-left');
+                    // Возврат на главную - каюта уезжает влево
+                    mainPage.classList.add('slide-in-left');
+                    cabinetPage.classList.add('slide-out-left');
                     
                     setTimeout(() => {
                         showPage(mainPage);
                         updateActiveNav(null);
-                        resetTransforms();
-                    }, 300);
+                        resetAnimations();
+                    }, 250);
                 }
                 break;
                 
             case 'storage':
                 if (direction === 'right') {
-                    // Возврат на главную - склад уезжает ВПРАВО
-                    mainPage.style.transform = 'translateX(0)';
-                    storagePage.classList.add('slide-to-right');
+                    // Возврат на главную - склад уезжает вправо
+                    mainPage.classList.add('slide-in-right');
+                    storagePage.classList.add('slide-out-right');
                     
                     setTimeout(() => {
                         showPage(mainPage);
                         updateActiveNav(null);
-                        resetTransforms();
-                    }, 300);
+                        resetAnimations();
+                    }, 250);
                 }
                 break;
         }
         
-        // Вибрация для подтверждения действия
+        // Быстрая вибрация
         if (typeof triggerVibration === 'function') {
-            triggerVibration();
+            setTimeout(triggerVibration, 50);
         }
     }, 10);
 }
 
-// Сброс трансформаций
-function resetTransforms() {
+// Сброс анимаций
+function resetAnimations() {
     const mainPage = document.getElementById('main-page');
     const cabinetPage = document.getElementById('cabinet-page');
     const storagePage = document.getElementById('storage-page');
@@ -7585,7 +7636,7 @@ function resetTransforms() {
     [mainPage, cabinetPage, storagePage].forEach(page => {
         if (page) {
             page.style.transform = '';
-            page.className = page.className.replace(/slide-from-\w+|slide-to-\w+/g, '');
+            page.className = page.className.replace(/slide-(in|out)-\w+/g, '');
             page.classList.remove('swipeable-page');
         }
     });
@@ -7610,14 +7661,18 @@ function canSwipeOnElement(element) {
 
 // Определение направления свайпа
 function getSwipeDirection(deltaX, deltaY) {
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+    
+    if (absDeltaX > absDeltaY && absDeltaX > 20) {
         return deltaX > 0 ? 'right' : 'left';
-    } else {
+    } else if (absDeltaY > absDeltaX && absDeltaY > 20) {
         return deltaY > 0 ? 'down' : 'up';
     }
+    return null;
 }
 
-// Обработчики касаний для свайпов
+// Обработчики касаний для быстрых свайпов
 document.addEventListener('touchstart', function(e) {
     if (!canSwipeOnElement(e.target)) return;
     
@@ -7636,12 +7691,12 @@ document.addEventListener('touchmove', function(e) {
     const deltaX = touchX - touchStartX;
     const deltaY = touchY - touchStartY;
     
-    // Определяем направление
-    if (!swipeDirection && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+    // Быстро определяем направление
+    if (!swipeDirection) {
         swipeDirection = getSwipeDirection(deltaX, deltaY);
     }
     
-    // Блокируем скролл при свайпе
+    // Блокируем скролл при определении направления
     if (swipeDirection && Math.abs(deltaX) > 10) {
         e.preventDefault();
     }
@@ -7657,31 +7712,22 @@ document.addEventListener('touchend', function(e) {
     const deltaX = touchX - touchStartX;
     const deltaY = touchY - touchStartY;
     
-    const currentPage = getCurrentPage();
     const distance = Math.max(Math.abs(deltaX), Math.abs(deltaY));
     
-    // Проверяем минимальную дистанцию для свайпа
-    if (distance > 50 && swipeDirection) {
-        // Для главной страницы разрешаем все направления
-        if (currentPage === 'main') {
-            navigateToPageWithAnimation(swipeDirection);
-            e.preventDefault();
-        } 
-        // Для других страниц только горизонтальные свайпы
-        else if (swipeDirection === 'left' || swipeDirection === 'right') {
-            navigateToPageWithAnimation(swipeDirection);
-            e.preventDefault();
-        }
+    // Быстрое срабатывание при коротком свайпе
+    if (distance > 40 && swipeDirection) {
+        navigateWithQuickAnimation(swipeDirection);
+        e.preventDefault();
     }
 });
 
-// Показываем подсказку о возможности свайпа при первом посещении
+// Показываем подсказку
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         if (!localStorage.getItem('swipeHintShown')) {
             const swipeHint = document.createElement('div');
             swipeHint.className = 'swipe-hint show';
-            swipeHint.textContent = '←→ Свайпайте в любую сторону →';
+            swipeHint.textContent = '↔️ Быстрые свайпы в любую сторону';
             document.body.appendChild(swipeHint);
             
             setTimeout(function() {
@@ -7691,10 +7737,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         swipeHint.parentNode.removeChild(swipeHint);
                     }
                     localStorage.setItem('swipeHintShown', 'true');
-                }, 300);
-            }, 3000);
+                }, 200);
+            }, 2000);
         }
-    }, 2000);
+    }, 1000);
 });
 
 // ... ваш существующий код ПОСЛЕ этого места ...
