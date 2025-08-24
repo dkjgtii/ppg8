@@ -7405,11 +7405,10 @@ document.head.appendChild(swipeStyle);
 <script>
 // ... ваш существующий код ДО этого места ...
 
-// ===== УЛУЧШЕННЫЕ СВАЙПЫ С АНИМАЦИЕЙ =====
+// ===== УЛУЧШЕННЫЕ СВАЙПЫ С ПРАВИЛЬНОЙ АНИМАЦИЕЙ =====
 let touchStartX = 0;
 let touchStartY = 0;
 let isSwiping = false;
-let currentSwipeElement = null;
 
 // Добавляем стили для анимации
 const swipeStyles = `
@@ -7436,30 +7435,6 @@ const swipeStyles = `
     .swipe-hint.show {
         opacity: 1;
     }
-    
-    .swipe-indicator {
-        position: fixed;
-        top: 50%;
-        width: 4px;
-        height: 40px;
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 2px;
-        z-index: 999;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
-    
-    .swipe-indicator.left {
-        left: 10px;
-    }
-    
-    .swipe-indicator.right {
-        right: 10px;
-    }
-    
-    .swipe-indicator.visible {
-        opacity: 1;
-    }
 `;
 
 // Добавляем стили в документ
@@ -7477,26 +7452,6 @@ function getCurrentPage() {
     if (cabinetPage && cabinetPage.style.display !== 'none') return 'cabinet';
     if (storagePage && storagePage.style.display !== 'none') return 'storage';
     return 'main';
-}
-
-// Функция для показа индикатора свайпа
-function showSwipeIndicator(direction) {
-    let indicator = document.querySelector('.swipe-indicator');
-    if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.className = 'swipe-indicator';
-        document.body.appendChild(indicator);
-    }
-    
-    indicator.className = `swipe-indicator ${direction} visible`;
-}
-
-// Функция для скрытия индикатора свайпа
-function hideSwipeIndicator() {
-    const indicator = document.querySelector('.swipe-indicator');
-    if (indicator) {
-        indicator.className = 'swipe-indicator';
-    }
 }
 
 // Функция для обработки навигации с анимацией
@@ -7520,16 +7475,18 @@ function navigateToPageWithAnimation(direction) {
         switch(current) {
             case 'main':
                 if (direction === 'right') {
-                    mainPage.style.transform = 'translateX(-100%)';
+                    // Каюта выезжает СЛЕВА
                     cabinetPage.style.transform = 'translateX(0)';
+                    mainPage.style.transform = 'translateX(100%)';
                     setTimeout(() => {
                         showPage(cabinetPage);
                         if (cabinetNavItem) updateActiveNav(cabinetNavItem);
                         resetTransforms();
                     }, 300);
                 } else {
-                    mainPage.style.transform = 'translateX(100%)';
+                    // Склад выезжает СПРАВА
                     storagePage.style.transform = 'translateX(0)';
+                    mainPage.style.transform = 'translateX(-100%)';
                     setTimeout(() => {
                         showPage(storagePage);
                         if (storageNavItem) updateActiveNav(storageNavItem);
@@ -7540,8 +7497,9 @@ function navigateToPageWithAnimation(direction) {
                 
             case 'cabinet':
                 if (direction === 'left') {
-                    cabinetPage.style.transform = 'translateX(100%)';
+                    // Возврат на главную - каюта уезжает ВЛЕВО
                     mainPage.style.transform = 'translateX(0)';
+                    cabinetPage.style.transform = 'translateX(-100%)';
                     setTimeout(() => {
                         showPage(mainPage);
                         updateActiveNav(null);
@@ -7552,8 +7510,9 @@ function navigateToPageWithAnimation(direction) {
                 
             case 'storage':
                 if (direction === 'right') {
-                    storagePage.style.transform = 'translateX(-100%)';
+                    // Возврат на главную - склад уезжает ВПРАВО
                     mainPage.style.transform = 'translateX(0)';
+                    storagePage.style.transform = 'translateX(100%)';
                     setTimeout(() => {
                         showPage(mainPage);
                         updateActiveNav(null);
@@ -7608,35 +7567,17 @@ document.addEventListener('touchstart', function(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     isSwiping = true;
-    currentSwipeElement = e.target;
-    
-    // Показываем индикатор для текущей страницы
-    const currentPage = getCurrentPage();
-    if (currentPage === 'cabinet') {
-        showSwipeIndicator('left');
-    } else if (currentPage === 'storage') {
-        showSwipeIndicator('right');
-    }
 });
 
 document.addEventListener('touchmove', function(e) {
     if (!isSwiping) return;
     
     const touchX = e.touches[0].clientX;
-    const touchY = e.touches[0].clientY;
-    
     const deltaX = touchX - touchStartX;
-    const deltaY = touchY - touchStartY;
     
     // Если это горизонтальный свайп
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+    if (Math.abs(deltaX) > 10) {
         e.preventDefault();
-        
-        // Легкое перемещение текущей страницы
-        const currentPage = document.querySelector('#main-page, #cabinet-page, #storage-page[style*="display: block"]');
-        if (currentPage) {
-            currentPage.style.transform = `translateX(${deltaX * 0.5}px)`;
-        }
     }
 });
 
@@ -7655,19 +7596,7 @@ document.addEventListener('touchend', function(e) {
         const direction = deltaX > 0 ? 'right' : 'left';
         navigateToPageWithAnimation(direction);
         e.preventDefault();
-    } else {
-        // Возвращаем страницу на место если свайп не состоялся
-        const currentPage = document.querySelector('#main-page, #cabinet-page, #storage-page[style*="display: block"]');
-        if (currentPage) {
-            currentPage.style.transition = 'transform 0.2s ease';
-            currentPage.style.transform = 'translateX(0)';
-            setTimeout(() => {
-                currentPage.style.transition = '';
-            }, 200);
-        }
     }
-    
-    hideSwipeIndicator();
 });
 
 // Показываем подсказку о возможности свайпа при первом посещении
