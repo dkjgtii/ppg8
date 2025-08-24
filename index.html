@@ -7405,21 +7405,16 @@ document.head.appendChild(swipeStyle);
 <script>
 // ... ваш существующий код ДО этого места ...
 
-// ===== СВАЙПЫ С ЭФФЕКТОМ ЗАЩЕЛКИВАНИЯ =====
+// ===== СВАЙПЫ С АНИМАЦИЕЙ ВО ВСЕ СТОРОНЫ =====
 let touchStartX = 0;
 let touchStartY = 0;
 let isSwiping = false;
-let currentTranslateX = 0;
-let isPageSticked = false;
+let swipeDirection = null;
 
 // Добавляем стили для анимации
 const swipeStyles = `
     .swipeable-page {
         transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-    
-    .page-sticked {
-        transition: none !important;
     }
     
     .swipe-hint {
@@ -7442,23 +7437,29 @@ const swipeStyles = `
         opacity: 1;
     }
     
-    .page-peek {
-        position: fixed;
-        top: 0;
-        width: 20px;
-        height: 100%;
-        z-index: 998;
-        pointer-events: none;
+    /* Анимации для разных направлений */
+    .slide-from-right {
+        transform: translateX(100%);
     }
     
-    .page-peek-left {
-        left: 0;
-        background: linear-gradient(90deg, rgba(0,0,0,0.1) 0%, transparent 100%);
+    .slide-from-left {
+        transform: translateX(-100%);
     }
     
-    .page-peek-right {
-        right: 0;
-        background: linear-gradient(270deg, rgba(0,0,0,0.1) 0%, transparent 100%);
+    .slide-from-bottom {
+        transform: translateY(100%);
+    }
+    
+    .slide-to-right {
+        transform: translateX(100%);
+    }
+    
+    .slide-to-left {
+        transform: translateX(-100%);
+    }
+    
+    .slide-to-bottom {
+        transform: translateY(100%);
     }
 `;
 
@@ -7466,20 +7467,6 @@ const swipeStyles = `
 const styleElement = document.createElement('style');
 styleElement.textContent = swipeStyles;
 document.head.appendChild(styleElement);
-
-// Создаем элементы для preview страниц
-function createPagePeeks() {
-    const peekLeft = document.createElement('div');
-    peekLeft.className = 'page-peek page-peek-left';
-    peekLeft.style.opacity = '0';
-    
-    const peekRight = document.createElement('div');
-    peekRight.className = 'page-peek page-peek-right';
-    peekRight.style.opacity = '0';
-    
-    document.body.appendChild(peekLeft);
-    document.body.appendChild(peekRight);
-}
 
 // Функция для определения текущей страницы
 function getCurrentPage() {
@@ -7493,29 +7480,6 @@ function getCurrentPage() {
     return 'main';
 }
 
-// Показываем preview страницы
-function showPagePeek(direction, progress) {
-    const peekLeft = document.querySelector('.page-peek-left');
-    const peekRight = document.querySelector('.page-peek-right');
-    
-    if (direction === 'right') {
-        peekLeft.style.opacity = Math.min(progress * 2, 1).toString();
-        peekRight.style.opacity = '0';
-    } else {
-        peekRight.style.opacity = Math.min(progress * 2, 1).toString();
-        peekLeft.style.opacity = '0';
-    }
-}
-
-// Скрываем preview
-function hidePagePeeks() {
-    const peekLeft = document.querySelector('.page-peek-left');
-    const peekRight = document.querySelector('.page-peek-right');
-    
-    if (peekLeft) peekLeft.style.opacity = '0';
-    if (peekRight) peekRight.style.opacity = '0';
-}
-
 // Функция для обработки навигации с анимацией
 function navigateToPageWithAnimation(direction) {
     const current = getCurrentPage();
@@ -7527,12 +7491,9 @@ function navigateToPageWithAnimation(direction) {
     const cabinetPage = document.getElementById('cabinet-page');
     const storagePage = document.getElementById('storage-page');
     
-    // Убираем статичное состояние
+    // Добавляем класс анимации
     [mainPage, cabinetPage, storagePage].forEach(page => {
-        if (page) {
-            page.classList.remove('page-sticked');
-            page.classList.add('swipeable-page');
-        }
+        if (page) page.classList.add('swipeable-page');
     });
     
     // Применяем анимацию в зависимости от направления
@@ -7540,28 +7501,51 @@ function navigateToPageWithAnimation(direction) {
         switch(current) {
             case 'main':
                 if (direction === 'right') {
-                    cabinetPage.style.transform = 'translateX(0)';
-                    mainPage.style.transform = 'translateX(100%)';
+                    // Каюта выезжает СЛЕВА
+                    cabinetPage.classList.add('slide-from-left');
+                    setTimeout(() => {
+                        cabinetPage.classList.remove('slide-from-left');
+                        cabinetPage.style.transform = 'translateX(0)';
+                        mainPage.classList.add('slide-to-right');
+                    }, 10);
+                    
                     setTimeout(() => {
                         showPage(cabinetPage);
                         if (cabinetNavItem) updateActiveNav(cabinetNavItem);
                         resetTransforms();
                     }, 300);
-                } else {
-                    storagePage.style.transform = 'translateX(0)';
-                    mainPage.style.transform = 'translateX(-100%)';
+                    
+                } else if (direction === 'left') {
+                    // Склад выезжает СПРАВА
+                    storagePage.classList.add('slide-from-right');
+                    setTimeout(() => {
+                        storagePage.classList.remove('slide-from-right');
+                        storagePage.style.transform = 'translateX(0)';
+                        mainPage.classList.add('slide-to-left');
+                    }, 10);
+                    
                     setTimeout(() => {
                         showPage(storagePage);
                         if (storageNavItem) updateActiveNav(storageNavItem);
                         resetTransforms();
                     }, 300);
+                    
+                } else if (direction === 'up') {
+                    // Дополнительная страница выезжает СНИЗУ (например, для настроек)
+                    // Здесь можно добавить логику для новой страницы
+                    console.log('Swipe up - open settings or other page');
+                    if (typeof triggerVibration === 'function') {
+                        triggerVibration();
+                    }
                 }
                 break;
                 
             case 'cabinet':
                 if (direction === 'left') {
+                    // Возврат на главную - каюта уезжает ВЛЕВО
                     mainPage.style.transform = 'translateX(0)';
-                    cabinetPage.style.transform = 'translateX(-100%)';
+                    cabinetPage.classList.add('slide-to-left');
+                    
                     setTimeout(() => {
                         showPage(mainPage);
                         updateActiveNav(null);
@@ -7572,8 +7556,10 @@ function navigateToPageWithAnimation(direction) {
                 
             case 'storage':
                 if (direction === 'right') {
+                    // Возврат на главную - склад уезжает ВПРАВО
                     mainPage.style.transform = 'translateX(0)';
-                    storagePage.style.transform = 'translateX(100%)';
+                    storagePage.classList.add('slide-to-right');
+                    
                     setTimeout(() => {
                         showPage(mainPage);
                         updateActiveNav(null);
@@ -7599,12 +7585,10 @@ function resetTransforms() {
     [mainPage, cabinetPage, storagePage].forEach(page => {
         if (page) {
             page.style.transform = '';
+            page.className = page.className.replace(/slide-from-\w+|slide-to-\w+/g, '');
             page.classList.remove('swipeable-page');
-            page.classList.remove('page-sticked');
         }
     });
-    hidePagePeeks();
-    isPageSticked = false;
 }
 
 // Проверка можно ли свайпать на элементе
@@ -7624,6 +7608,15 @@ function canSwipeOnElement(element) {
     return true;
 }
 
+// Определение направления свайпа
+function getSwipeDirection(deltaX, deltaY) {
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        return deltaX > 0 ? 'right' : 'left';
+    } else {
+        return deltaY > 0 ? 'down' : 'up';
+    }
+}
+
 // Обработчики касаний для свайпов
 document.addEventListener('touchstart', function(e) {
     if (!canSwipeOnElement(e.target)) return;
@@ -7631,55 +7624,26 @@ document.addEventListener('touchstart', function(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     isSwiping = true;
-    isPageSticked = false;
-    currentTranslateX = 0;
-    
-    // Убираем анимацию для плавного dragging
-    const mainPage = document.getElementById('main-page');
-    if (mainPage) {
-        mainPage.style.transition = 'none';
-    }
+    swipeDirection = null;
 });
 
 document.addEventListener('touchmove', function(e) {
     if (!isSwiping) return;
     
     const touchX = e.touches[0].clientX;
-    const deltaX = touchX - touchStartX;
-    const deltaY = e.touches[0].clientY - touchStartY;
+    const touchY = e.touches[0].clientY;
     
-    // Если это горизонтальный свайп
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+    const deltaX = touchX - touchStartX;
+    const deltaY = touchY - touchStartY;
+    
+    // Определяем направление
+    if (!swipeDirection && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+        swipeDirection = getSwipeDirection(deltaX, deltaY);
+    }
+    
+    // Блокируем скролл при свайпе
+    if (swipeDirection && Math.abs(deltaX) > 10) {
         e.preventDefault();
-        
-        const currentPage = getCurrentPage();
-        const mainPage = document.getElementById('main-page');
-        
-        if (currentPage === 'main' && mainPage) {
-            const direction = deltaX > 0 ? 'right' : 'left';
-            const progress = Math.min(Math.abs(deltaX) / 150, 1);
-            
-            // Показываем preview следующей страницы
-            showPagePeek(direction, progress);
-            
-            if (!isPageSticked && Math.abs(deltaX) > 80) {
-                // Страница "защелкивается" - становится статичной
-                isPageSticked = true;
-                if (typeof triggerVibration === 'function') {
-                    triggerVibration();
-                }
-            }
-            
-            if (isPageSticked) {
-                // После защелкивания страница следует за пальцем с отставанием
-                mainPage.style.transform = `translateX(${deltaX * 0.7}px)`;
-            } else {
-                // До защелкивания плавное движение
-                mainPage.style.transform = `translateX(${deltaX * 0.5}px)`;
-            }
-            
-            currentTranslateX = deltaX;
-        }
     }
 });
 
@@ -7693,36 +7657,31 @@ document.addEventListener('touchend', function(e) {
     const deltaX = touchX - touchStartX;
     const deltaY = touchY - touchStartY;
     
-    // Проверяем, что это был горизонтальный свайп
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-        const direction = deltaX > 0 ? 'right' : 'left';
-        navigateToPageWithAnimation(direction);
-        e.preventDefault();
-    } else {
-        // Возвращаем страницу на место если свайп не состоялся
-        const mainPage = document.getElementById('main-page');
-        if (mainPage) {
-            mainPage.style.transition = 'transform 0.2s ease';
-            mainPage.style.transform = 'translateX(0)';
-            setTimeout(() => {
-                mainPage.style.transition = '';
-            }, 200);
-        }
-        hidePagePeeks();
-    }
+    const currentPage = getCurrentPage();
+    const distance = Math.max(Math.abs(deltaX), Math.abs(deltaY));
     
-    isPageSticked = false;
+    // Проверяем минимальную дистанцию для свайпа
+    if (distance > 50 && swipeDirection) {
+        // Для главной страницы разрешаем все направления
+        if (currentPage === 'main') {
+            navigateToPageWithAnimation(swipeDirection);
+            e.preventDefault();
+        } 
+        // Для других страниц только горизонтальные свайпы
+        else if (swipeDirection === 'left' || swipeDirection === 'right') {
+            navigateToPageWithAnimation(swipeDirection);
+            e.preventDefault();
+        }
+    }
 });
 
-// Инициализация
+// Показываем подсказку о возможности свайпа при первом посещении
 document.addEventListener('DOMContentLoaded', function() {
-    createPagePeeks();
-    
     setTimeout(function() {
         if (!localStorage.getItem('swipeHintShown')) {
             const swipeHint = document.createElement('div');
             swipeHint.className = 'swipe-hint show';
-            swipeHint.textContent = '← Вытяните страницу для навигации →';
+            swipeHint.textContent = '←→ Свайпайте в любую сторону →';
             document.body.appendChild(swipeHint);
             
             setTimeout(function() {
